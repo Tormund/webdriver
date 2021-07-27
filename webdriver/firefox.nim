@@ -57,16 +57,12 @@ proc checkErr(j: JsonNode) =
   else:
     raise newException(Exception, "Unexpected response: " & $j)
 
-proc readMessage(d: FirefoDriver, timeout: int = 10_000): Future[JsonNode] {.async.} =
+proc readMessage(d: FirefoDriver): Future[JsonNode] {.async.} =
   var strLen = ""
-  let st = epochTime()
   while strLen.len < 100:
     var d = await d.sock.recv(1)
     if d == ":": break
     strLen &= d
-    if epochTime() - st > timeout/1000:
-      raise newException(Exception, " timeout ")
-
   echo "."
   var sz = parseInt(strLen)
   var s = await d.sock.recv(sz)

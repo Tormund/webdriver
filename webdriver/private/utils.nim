@@ -1,4 +1,4 @@
-import net
+import net, random
 
 proc noimpl* =
   assert(false, "abstract method called")

@@ -1,4 +1,4 @@
-import asyncdispatch, httpclient, strutils, json
+import asyncdispatch, httpclient, strutils, json, net
 import private/utils
 import ./driver
 export driver
@@ -18,14 +18,17 @@ proc init*(d: WebDriver) =
 
 proc checkErr(j: JsonNode) =
   if j.kind == JObject:
-    var err = j{"error"}.getStr()
-    let msg = j{"message"}.getStr()
-    if err.len > 0:
-      if msg.len > 0:
-        err = msg
-      raise newException(Exception, err)
+    let e = j{"error"}
+    let m = j{"message"}
+    if not e.isNil and e.kind == JString:
+      if not m.isNil and m.kind == JString:
+        raise newException(Exception, m.getStr())
+      raise newException(Exception, e.getStr())
 
 proc request(d: WebDriver, meth: HttpMethod, path: string, o: JsonNode = nil): Future[JsonNode] {.async.} =
+  # let client = newAsyncHttpClient(sslContext = newContext(verifyMode = CVerifyNone))
+  # echo "requst ", path
+
   let client = newAsyncHttpClient()
   var b: string
   if not o.isNil:
@@ -41,10 +44,13 @@ proc request(d: WebDriver, meth: HttpMethod, path: string, o: JsonNode = nil): F
   if path.len != 0:
     url &= "/"
     url &= path
+
+  echo "req ", url, " meth ", meth, " b ", b
+
   let r = await client.request(url, httpMethod = meth, body = b)
   let rb = await r.body
   let res = parseJson(rb)["value"]
-  # echo "res: ", res
+  echo "res: ", res
   checkErr(res)
   client.close()
   return res

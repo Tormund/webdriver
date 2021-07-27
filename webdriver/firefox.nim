@@ -41,6 +41,7 @@ proc newFirefoxDriver*(): FirefoDriver =
 method close*(d: FirefoDriver) {.async.} =
   await procCall Driver(d).close()
   d.process.terminate()
+  await sleepAsync(100)
   removeDir(d.profileFolder)
 
 proc checkErr(j: JsonNode) =
@@ -74,8 +75,10 @@ proc send(d: FirefoDriver, meth: string, o: JsonNode = nil): Future[JsonNode] {.
   let data = %*[0, d.reqCounter, "WebDriver:" & meth, o]
   var b: string
   toUgly(b, data)
+  echo "[FirefoDriver] send ", b
   await d.sock.send($(b.len) & ":" & b)
   let r = await d.readMessage()
+  echo "[FirefoDriver] receive ", if r.isNil: "Null" else: $r
   checkErr(r)
   return r[3]
 
